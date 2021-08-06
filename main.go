@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/auleki/go-fiber-todo/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
@@ -22,6 +23,8 @@ func setupRoutes(app *fiber.App) {
 			"message": "AT THE NEW ENDPOINT",
 		})
 	})
+
+	routes.TodoRoute(api.Group("/todos"))
 }
 
 func main() {
