@@ -1,6 +1,11 @@
 package controllers
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type Todo struct {
 	Id        int    `json:"id"`
@@ -34,5 +39,71 @@ func GetTodos(c *fiber.Ctx) error {
 		"data": fiber.Map{
 			"todos": todos,
 		},
+	})
+}
+
+func CreateTodo(c *fiber.Ctx) {
+	type Request struct {
+		Title string `json:"title"`
+	}
+	var body Request
+
+	err := c.BodyParser(&body)
+
+	// handle Error
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Cant parse JSON",
+		})
+	}
+
+	todo := &Todo{
+		Id:        len(todos) + 1,
+		Title:     body.Title,
+		Completed: false,
+	}
+
+	todos = append(todos, todo)
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"todo": todo,
+		}
+	})
+}
+
+func GetTodo(c *fiber.Ctx) error {
+	// get parameter value 
+	paramId := c.Params("id")
+
+	// convert params value from strings to int
+	id, err := strconv.Atoi(paramId)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Could not parse Id"
+		})
+	}
+
+	// find and return todo based on param
+	for _, todo := range todos {
+		if todo.Id == id {
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"success": true,
+				"data": fiber.Map{
+					"todo": todo
+				}
+			})
+		}
+	}
+
+	// if no todo of passed ID
+	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		"success": false,
+		"message": "Todo not found"
 	})
 }
