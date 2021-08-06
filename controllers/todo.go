@@ -71,12 +71,12 @@ func CreateTodo(c *fiber.Ctx) error {
 		"success": true,
 		"data": fiber.Map{
 			"todo": todo,
-		}
+		},
 	})
 }
 
 func GetTodo(c *fiber.Ctx) error {
-	// get parameter value 
+	// get parameter value
 	paramId := c.Params("id")
 
 	// convert params value from strings to int
@@ -85,7 +85,7 @@ func GetTodo(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Could not parse Id"
+			"message": "Could not parse Id",
 		})
 	}
 	// find and return todo based on param
@@ -94,23 +94,23 @@ func GetTodo(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusOK).JSON(fiber.Map{
 				"success": true,
 				"data": fiber.Map{
-					"todo": todo
-				}
+					"todo": todo,
+				},
 			})
 		}
 	}
 	// if no todo of passed ID
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 		"success": false,
-		"message": "Todo not found"
+		"message": "Todo not found",
 	})
 }
 
 func UpdateTodo(c *fiber.Ctx) error {
 	type Request struct {
-		Title *string `json:"title"`
-		Completed *bool `json:"completed"`
-	}	
+		Title     *string `json:"title"`
+		Completed *bool   `json:"completed"`
+	}
 	// extract parameter id
 	paramId := c.Params("id")
 	// convert id from string to int
@@ -119,7 +119,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Cannot parse ID"
+			"message": "Cannot parse ID",
 		})
 	}
 
@@ -130,13 +130,13 @@ func UpdateTodo(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Cannot parse JSON"
+			"message": "Cannot parse JSON",
 		})
 	}
 
-	var todo *Todo 
+	var todo *Todo
 
-	for _, t = range todos {
+	for _, t := range todos {
 		if t.Id == id {
 			todo = t
 			break
@@ -146,7 +146,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 	if todo.Id == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "Not Found"
+			"message": "Not Found",
 		})
 	}
 
@@ -157,12 +157,12 @@ func UpdateTodo(c *fiber.Ctx) error {
 	if body.Completed != nil {
 		todo.Completed = *body.Completed
 	}
-	
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"data": fiber.Map{
 			"todo": todo,
-		}
+		},
 	})
 }
 
@@ -173,8 +173,8 @@ func DeleteTodo(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success" false,
-			"message": "Cannot parse id"
+			"success": false,
+			"message": "Cannot parse id",
 		})
 	}
 
@@ -182,14 +182,13 @@ func DeleteTodo(c *fiber.Ctx) error {
 		if todo.Id == id {
 			todos = append(todos[:i], todos[i+1:]...)
 			return c.Status(fiber.StatusNoContent).JSON(fiber.Map{
-				"status": true
-				"message": "Deleted Successfully"
-			})
-
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"success": false,
-				"message": "Todo not found"
+				"status":  true,
+				"message": "Deleted Successfully",
 			})
 		}
 	}
+	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		"success": false,
+		"message": "Todo not found",
+	})
 }
