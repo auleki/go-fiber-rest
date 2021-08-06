@@ -42,7 +42,7 @@ func GetTodos(c *fiber.Ctx) error {
 	})
 }
 
-func CreateTodo(c *fiber.Ctx) {
+func CreateTodo(c *fiber.Ctx) error {
 	type Request struct {
 		Title string `json:"title"`
 	}
@@ -88,7 +88,6 @@ func GetTodo(c *fiber.Ctx) error {
 			"message": "Could not parse Id"
 		})
 	}
-
 	// find and return todo based on param
 	for _, todo := range todos {
 		if todo.Id == id {
@@ -100,7 +99,6 @@ func GetTodo(c *fiber.Ctx) error {
 			})
 		}
 	}
-
 	// if no todo of passed ID
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 		"success": false,
@@ -112,13 +110,9 @@ func UpdateTodo(c *fiber.Ctx) error {
 	type Request struct {
 		Title *string `json:"title"`
 		Completed *bool `json:"completed"`
-	}
-
-	
-	
+	}	
 	// extract parameter id
 	paramId := c.Params("id")
-
 	// convert id from string to int
 	id, err := strconv.Atoi(paramId)
 
@@ -170,4 +164,32 @@ func UpdateTodo(c *fiber.Ctx) error {
 			"todo": todo,
 		}
 	})
+}
+
+func DeleteTodo(c *fiber.Ctx) error {
+	paramId := c.Params("id")
+
+	id, err := strconv.Atoi(paramId)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success" false,
+			"message": "Cannot parse id"
+		})
+	}
+
+	for i, todo := range todos {
+		if todo.Id == id {
+			todos = append(todos[:i], todos[i+1:]...)
+			return c.Status(fiber.StatusNoContent).JSON(fiber.Map{
+				"status": true
+				"message": "Deleted Successfully"
+			})
+
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"success": false,
+				"message": "Todo not found"
+			})
+		}
+	}
 }
