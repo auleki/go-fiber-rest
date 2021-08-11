@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/auleki/go-fiber-todo/config"
 	"github.com/auleki/go-fiber-todo/models"
@@ -49,25 +49,39 @@ func GetTodos(c *fiber.Ctx) error {
 }
 
 func CreateTodo(c *fiber.Ctx) error {
+	todoCollection := config.MI.DB.Collection(os.Getenv("TODO_COLLECTION"))
 
-	err := c.BodyParser(&body)
+	data := new(models.Todo)
 
-	// handle Error
+	err := c.BodyParser(&data)
+
 	if err != nil {
-		fmt.Println(err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Cant parse JSON",
+			"message": "Could not parse JSON",
+			"error":   err,
 		})
 	}
 
-	todo := &Todo{
-		Id:        len(todos) + 1,
-		Title:     body.Title,
-		Completed: false,
+	data.ID = nil
+	f := false
+	data.Completed = &f
+	data.CreatedAt = time.Now()
+	data.UpdatedAt = time.Now()
+
+	result, err := todoCollection.InsertOne(c.Context(), data)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Could not insert tood",
+			"error":   err,
+		})
 	}
 
-	todos = append(todos, todo)
+	todo := &models.Todo{}
+	query := bson.D{{Key: "_id", Value: result.InsertedID}}
+	todoCollection.FindOne(c.Context(), query).Decode(todo)
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"success": true,
