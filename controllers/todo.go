@@ -2,38 +2,44 @@ package controllers
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
+	"github.com/auleki/go-fiber-todo/config"
+	"github.com/auleki/go-fiber-todo/models"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 )
-
-type Todo struct {
-	Id        int    `json:"id"`
-	Title     string `json:"title"`
-	Completed bool   `json:"completed"`
-}
-
-// static typed todos
-var todos = []*Todo{
-	{
-		Id:        1,
-		Title:     "Record a verse",
-		Completed: false,
-	},
-	{
-		Id:        3,
-		Title:     "Fucking breath",
-		Completed: true,
-	},
-	{
-		Id:        2,
-		Title:     "Complete data entry profile",
-		Completed: false,
-	},
-}
 
 // gets all todos
 func GetTodos(c *fiber.Ctx) error {
+	todoCollection := config.MI.DB.Collection(os.Getenv("TODO_COLLECTION"))
+
+	// query to filter
+	query := bson.D{{}}
+
+	cursor, err := todoCollection.Find(c.Context(), query)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Something went horribly wrong, toss your pc if not mac",
+			"error":   err.Error(),
+		})
+	}
+
+	var todos []models.Todo = make([]models.Todo, 0)
+
+	// iterate the cursor and decode each item into a Todo
+	err = cursor.All(c.Context(), &todos)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Something went wrong",
+			"error":   err.Error(),
+		})
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"data": fiber.Map{
@@ -43,10 +49,6 @@ func GetTodos(c *fiber.Ctx) error {
 }
 
 func CreateTodo(c *fiber.Ctx) error {
-	type Request struct {
-		Title string `json:"title"`
-	}
-	var body Request
 
 	err := c.BodyParser(&body)
 
