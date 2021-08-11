@@ -1,9 +1,13 @@
 package main
 
 import (
+	"log"
+
+	"github.com/auleki/go-fiber-todo/config"
 	"github.com/auleki/go-fiber-todo/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 )
 
 func setupRoutes(app *fiber.App) {
@@ -30,14 +34,24 @@ func setupRoutes(app *fiber.App) {
 func main() {
 	app := fiber.New()
 	app.Use(logger.New())
-	// setup Routes
+
+	// fetch environment variables
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error loading .env files")
+	}
+
+	// connect to Database
+	config.ConnectDB()
+
+	// setup routes
 	setupRoutes(app)
 
-	// listen on port 8000 for any network requests
-	err := app.Listen(":8000")
+	err = app.Listen(":8000")
 
-	// handle error
 	if err != nil {
 		panic(err)
 	}
+
 }

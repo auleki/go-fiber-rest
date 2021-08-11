@@ -136,6 +136,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 
 	var todo *Todo
 
+	// loop over todos to find right one to update
 	for _, t := range todos {
 		if t.Id == id {
 			todo = t
@@ -158,6 +159,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 		todo.Completed = *body.Completed
 	}
 
+	// return a map with a success status and updated todo
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"data": fiber.Map{
@@ -178,6 +180,7 @@ func DeleteTodo(c *fiber.Ctx) error {
 		})
 	}
 
+	// loop over todos to find a match and delete
 	for i, todo := range todos {
 		if todo.Id == id {
 			todos = append(todos[:i], todos[i+1:]...)
