@@ -123,10 +123,11 @@ func GetTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	// if no todo of passed ID
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-		"success": false,
-		"message": "Todo not found",
+		"success": true,
+		"data": fiber.Map{
+			"todo": todo,
+		},
 	})
 }
 
