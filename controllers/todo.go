@@ -9,6 +9,7 @@ import (
 	"github.com/auleki/go-fiber-todo/models"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // gets all todos
@@ -92,29 +93,36 @@ func CreateTodo(c *fiber.Ctx) error {
 }
 
 func GetTodo(c *fiber.Ctx) error {
+	todoCollection := config.MI.DB.Collection(os.Getenv("TODO_COLLECTION"))
+
 	// get parameter value
 	paramId := c.Params("id")
 
 	// convert params value from strings to int
-	id, err := strconv.Atoi(paramId)
+	id, err := primitive.ObjectIDFromHex(paramId)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "Could not parse Id",
+			"error":   err,
 		})
 	}
-	// find and return todo based on param
-	for _, todo := range todos {
-		if todo.Id == id {
-			return c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"success": true,
-				"data": fiber.Map{
-					"todo": todo,
-				},
-			})
-		}
+
+	todo := &models.Todo{}
+
+	query := bson.D{{Key: "_id", Value: id}}
+
+	err = todoCollection.FindOne(c.Context(), query).Decode(todo)
+
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Todo not found",
+			"error":   err,
+		})
 	}
+
 	// if no todo of passed ID
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 		"success": false,
