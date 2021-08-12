@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // gets all todos
@@ -131,14 +132,13 @@ func GetTodo(c *fiber.Ctx) error {
 }
 
 func UpdateTodo(c *fiber.Ctx) error {
-	type Request struct {
-		Title     *string `json:"title"`
-		Completed *bool   `json:"completed"`
-	}
+	todoCollection := config.MI.DB.Collection(os.Getenv("TODO_COLLECTION"))
+
 	// extract parameter id
 	paramId := c.Params("id")
+
 	// convert id from string to int
-	id, err := strconv.Atoi(paramId)
+	id, err := primitive.ObjectIDFromHex(paramId)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -147,9 +147,9 @@ func UpdateTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	var body Request
+	data := new(models.Todo)
 
-	err = c.BodyParser(&body)
+	err = c.BodyParser(&data)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -158,30 +158,39 @@ func UpdateTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	var todo *Todo
+	query := bson.D{{Key: "_id", Value: id}}
 
-	// loop over todos to find right one to update
-	for _, t := range todos {
-		if t.Id == id {
-			todo = t
-			break
+	var dataToUpdate bson.D
+
+	if data.Title != nil {
+		dataToUpdate = append(dataToUpdate, bson.E{Key: "title", Value: data.Title})
+	}
+
+	if data.Completed != nil {
+		dataToUpdate = append(dataToUpdate, bson.E{Key: "completed", Value: data.Completed})
+	}
+
+	dataToUpdate = append(dataToUpdate, bson.E{Key: "updatedAt", Value: time.Now()})
+
+	update := bson.D{
+		{Key: "$set", Value: dataToUpdate},
+	}
+
+	err = todoCollection.FindOneAndUpdate(c.Context(), query, update).Err()
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"success": false,
+				"message": "Todo not found",
+				"error":   err,
+			})
 		}
 	}
 
-	if todo.Id == 0 {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "Not Found",
-		})
-	}
+	todo := &models.Todo{}
 
-	if body.Title != nil {
-		todo.Title = *body.Title
-	}
-
-	if body.Completed != nil {
-		todo.Completed = *body.Completed
-	}
+	todoCollection.FindOne(c.Context(), query).Decode(todo)
 
 	// return a map with a success status and updated todo
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
