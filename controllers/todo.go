@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/auleki/go-fiber-todo/config"
@@ -202,9 +201,11 @@ func UpdateTodo(c *fiber.Ctx) error {
 }
 
 func DeleteTodo(c *fiber.Ctx) error {
+	todoCollection := config.MI.DB.Collection(os.Getenv("TODO_COLLECTION"))
+
 	paramId := c.Params("id")
 
-	id, err := strconv.Atoi(paramId)
+	id, err := primitive.ObjectIDFromHex(paramId)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -213,18 +214,25 @@ func DeleteTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	// loop over todos to find a match and delete
-	for i, todo := range todos {
-		if todo.Id == id {
-			todos = append(todos[:i], todos[i+1:]...)
-			return c.Status(fiber.StatusNoContent).JSON(fiber.Map{
-				"status":  true,
-				"message": "Deleted Successfully",
+	query := bson.D{{Key: "_id", Value: id}}
+
+	err = todoCollection.FindOneAndDelete(c.Context(), query).Err()
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"success": false,
+				"message": "Todo not found",
+				"error":   err,
 			})
 		}
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Todo not deleted",
+			"error":   err,
+		})
 	}
-	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-		"success": false,
-		"message": "Todo not found",
-	})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
